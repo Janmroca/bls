@@ -95,7 +95,6 @@ test: $(TEST_EXE)
 	$(MAKE) sample_test
 
 sample_test: $(EXE_DIR)/bls_smpl.exe
-	python bls_smpl.py
 
 ifeq ($(OS),mac)
   MAC_GO_LDFLAGS="-ldflags=-s"

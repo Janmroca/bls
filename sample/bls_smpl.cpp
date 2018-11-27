@@ -2,71 +2,54 @@
 #include <bls/bls.hpp>
 #include <cybozu/option.hpp>
 #include <cybozu/itoa.hpp>
-#include <fstream>
+#include <sstream>
 
-const std::string pubFile = "sample/publickey";
-const std::string secFile = "sample/secretkey";
-const std::string signFile = "sample/sign";
-
-std::string makeName(const std::string& name, const bls::Id& id)
-{
-	const std::string suf = ".txt";
-	if (id.isZero()) return name + suf;
-	std::ostringstream os;
-	os << name << '.' << id << suf;
-	return os.str();
-}
+#define log(x) std::cout << "Log: " << x << std::endl;
 
 template<class T>
-void save(const std::string& file, const T& t, const bls::Id& id = 0)
+void set(const std::string& in, T& t)
 {
-	const std::string name = makeName(file, id);
-	std::ofstream ofs(name.c_str(), std::ios::binary);
-	if (!(ofs << t)) {
-		throw cybozu::Exception("can't save") << name;
-	}
-}
-
-template<class T>
-void load(T& t, const std::string& file, const bls::Id& id = 0)
-{
-	const std::string name = makeName(file, id);
-	std::ifstream ifs(name.c_str(), std::ios::binary);
-	if (!(ifs >> t)) {
-		throw cybozu::Exception("can't load") << name;
-	}
+	std::istringstream iss(in);
+	if (!(iss >> t)) throw cybozu::Exception("can't set") << in;
 }
 
 int init()
 {
-	printf("make %s and %s files\n", secFile.c_str(), pubFile.c_str());
+	log("Initializing bls.");
 	bls::SecretKey sec;
 	sec.init();
-	save(secFile, sec);
+	std::cout << "secKey: " << sec << std::endl;
+
 	bls::PublicKey pub;
 	sec.getPublicKey(pub);
-	save(pubFile, pub);
+	std::cout << "pubKey: " << pub << std::endl;
+
 	return 0;
 }
 
-int sign(const std::string& m, int id)
+int sign(const std::string& m, const std::string& sKey, int id)
 {
-	printf("sign message `%s` by id=%d\n", m.c_str(), id);
+	log("signing message: " << m);
 	bls::SecretKey sec;
-	load(sec, secFile, id);
+	set(sKey, sec);
+
 	bls::Signature s;
 	sec.sign(s, m);
-	save(signFile, s, id);
+	std::cout << "sMsg: " << s << std::endl;
+	std::cout << "signed by : " << sec << std::endl;
+
 	return 0;
 }
 
-int verify(const std::string& m, int id)
+int verify(const std::string& m, const std::string& pKey, const std::string sMsg, int id)
 {
-	printf("verify message `%s` by id=%d\n", m.c_str(), id);
+	log("verify message " << m);
 	bls::PublicKey pub;
-	load(pub, pubFile, id);
+	set(pKey, pub);
+
 	bls::Signature s;
-	load(s, signFile, id);
+	set(sMsg, s);
+
 	if (s.verify(pub, m)) {
 		puts("verify ok");
 		return 0;
@@ -78,11 +61,13 @@ int verify(const std::string& m, int id)
 
 int share(size_t n, size_t k)
 {
-	printf("%d-out-of-%d threshold sharing\n", (int)k, (int)n);
+	log((int)k << "-out-of-" << (int)n << " threshold sharing");
 	bls::SecretKey sec;
-	load(sec, secFile);
+	//load(sec, secFile);
+
 	bls::SecretKeyVec msk;
 	sec.getMasterSecretKey(msk, k);
+
 	bls::SecretKeyVec secVec(n);
 	bls::IdVec ids(n);
 	for (size_t i = 0; i < n; i++) {
@@ -91,11 +76,12 @@ int share(size_t n, size_t k)
 		secVec[i].set(msk, id);
 	}
 	for (size_t i = 0; i < n; i++) {
-		save(secFile, secVec[i], ids[i]);
+		//save(secFile, secVec[i], ids[i]);
 		bls::PublicKey pub;
 		secVec[i].getPublicKey(pub);
-		save(pubFile, pub, ids[i]);
+		//save(pubFile, pub, ids[i]);
 	}
+
 	return 0;
 }
 
@@ -106,13 +92,16 @@ int recover(const bls::IdVec& ids)
 		std::cout << ' ' << ids[i];
 	}
 	printf("\n");
+
 	bls::SignatureVec sigVec(ids.size());
 	for (size_t i = 0; i < sigVec.size(); i++) {
-		load(sigVec[i], signFile, ids[i]);
+		//load(sigVec[i], signFile, ids[i]);
 	}
+
 	bls::Signature s;
 	s.recover(sigVec, ids);
-	save(signFile, s);
+	//save(signFile, s);
+
 	return 0;
 }
 
@@ -122,7 +111,10 @@ int main(int argc, char *argv[])
 	bls::init(); // use BN254
 
 	std::string mode;
-	std::string m;
+	std::string msg;
+	std::string sMsg;
+	std::string sKey;
+	std::string pKey;
 	size_t n;
 	size_t k;
 	int id;
@@ -132,7 +124,10 @@ int main(int argc, char *argv[])
 	opt.appendParam(&mode, "init|sign|verify|share|recover");
 	opt.appendOpt(&n, 10, "n", ": k-out-of-n threshold");
 	opt.appendOpt(&k, 3, "k", ": k-out-of-n threshold");
-	opt.appendOpt(&m, "", "m", ": message to be signed");
+	opt.appendOpt(&sKey, "", "sk", ": secret key");
+	opt.appendOpt(&pKey, "", "pk", ": public key");
+	opt.appendOpt(&msg, "", "m", ": message to be signed");
+	opt.appendOpt(&sMsg, "", "sm", ": signed message");
 	opt.appendOpt(&id, 0, "id", ": id of secretKey");
 	opt.appendVec(&ids, "ids", ": select k id in [0, n). this option should be last");
 	opt.appendHelp("h");
@@ -143,11 +138,14 @@ int main(int argc, char *argv[])
 	if (mode == "init") {
 		return init();
 	} else if (mode == "sign") {
-		if (m.empty()) goto ERR_EXIT;
-		return sign(m, id);
+		if (msg.empty()) goto ERR_EXIT;
+		if (sKey.empty()) goto ERR_EXIT;
+		return sign(msg, sKey, id);
 	} else if (mode == "verify") {
-		if (m.empty()) goto ERR_EXIT;
-		return verify(m, id);
+		if (msg.empty()) goto ERR_EXIT;
+		if (pKey.empty()) goto ERR_EXIT;
+		if (sMsg.empty()) goto ERR_EXIT;
+		return verify(msg, pKey, sMsg, id);
 	} else if (mode == "share") {
 		return share(n, k);
 	} else if (mode == "recover") {
