@@ -13,11 +13,11 @@ void set(const std::string& in, T& t)
 	if (!(iss >> t)) throw cybozu::Exception("can't set") << in;
 }
 
-int init()
+int init(const int id)
 {
 	log("Initializing bls.");
 	bls::SecretKey sec;
-	sec.init();
+	sec.setHashOf(&id, sizeof(id));
 	std::cout << "secKey: " << sec << std::endl;
 
 	bls::PublicKey pub;
@@ -119,16 +119,17 @@ int main(int argc, char *argv[])
 	opt.appendOpt(&pKey, "", "pk", ": public key");
 	opt.appendOpt(&msg, "", "m", ": message to be signed");
 	opt.appendOpt(&sMsg, "", "sm", ": signed message");
-	opt.appendOpt(&id, 0, "id", ": id of secretKey");
+	opt.appendOpt(&id, 0, "id", ": id to initialize bls");
 	opt.appendVec(&ids, "ids", ": ids of threshold participants");
-	opt.appendVec(&sigs, "sigs", ": signatures to recover");
+	opt.appendVec(&sigs, "sigs", ": signatures to recover from");
 	opt.appendHelp("h");
 	if (!opt.parse(argc, argv)) {
 		goto ERR_EXIT;
 	}
 
 	if (mode == "init") {
-		return init();
+		if (!id) goto ERR_EXIT;
+		return init(id);
 	} else if (mode == "sign") {
 		if (sKey.empty()) goto ERR_EXIT;
 		if (msg.empty()) goto ERR_EXIT;
