@@ -81,22 +81,18 @@ int share(const std::string& sKey, size_t k, const bls::IdVec& ids)
 	return 0;
 }
 
-int recover(const bls::IdVec& ids)
+int recover(const bls::IdVec& ids, const std::vector<std::string>& sigs)
 {
-	printf("recover from");
-	for (size_t i = 0; i < ids.size(); i++) {
-		std::cout << ' ' << ids[i];
-	}
-	printf("\n");
+	log("recovering with " << sigs.size() << " signatures");
 
-	bls::SignatureVec sigVec(ids.size());
+	bls::SignatureVec sigVec(sigs.size());
 	for (size_t i = 0; i < sigVec.size(); i++) {
-		//load(sigVec[i], signFile, ids[i]);
+		set(sigs[i], sigVec[i]);
 	}
 
 	bls::Signature s;
 	s.recover(sigVec, ids);
-	//save(signFile, s);
+	std::cout << "recovered: " << s << std::endl;
 
 	return 0;
 }
@@ -114,16 +110,18 @@ int main(int argc, char *argv[])
 	size_t k;
 	int id;
 	bls::IdVec ids;
+	std::vector<std::string> sigs;
 
 	cybozu::Option opt;
 	opt.appendParam(&mode, "init|sign|verify|share|recover");
-	opt.appendOpt(&k, 3, "k", ": k-out-of-n threshold");
+	opt.appendOpt(&k, 0, "k", ": k-out-of-n threshold");
 	opt.appendOpt(&sKey, "", "sk", ": secret key");
 	opt.appendOpt(&pKey, "", "pk", ": public key");
 	opt.appendOpt(&msg, "", "m", ": message to be signed");
 	opt.appendOpt(&sMsg, "", "sm", ": signed message");
 	opt.appendOpt(&id, 0, "id", ": id of secretKey");
-	opt.appendVec(&ids, "ids", ": select k id in [0, n). this option should be last");
+	opt.appendVec(&ids, "ids", ": ids of threshold participants");
+	opt.appendVec(&sigs, "sigs", ": signatures to recover");
 	opt.appendHelp("h");
 	if (!opt.parse(argc, argv)) {
 		goto ERR_EXIT;
@@ -146,8 +144,9 @@ int main(int argc, char *argv[])
 		if (ids.empty()) goto ERR_EXIT;
 		return share(sKey, k, ids);
 	} else if (mode == "recover") {
-		if (ids.empty()) goto ERR_EXIT;
-		return recover(ids);
+		if (!sigs.size()) goto ERR_EXIT;
+		if (!ids.size()) goto ERR_EXIT;
+		return recover(ids, sigs);
 	} else {
 		fprintf(stderr, "bad mode %s\n", mode.c_str());
 	}
