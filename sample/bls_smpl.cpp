@@ -97,6 +97,18 @@ int recover(const bls::IdVec& ids, const std::vector<std::string>& sigs)
 	return 0;
 }
 
+int get_PubKey(const std::string& sKey)
+{
+	bls::SecretKey sec;
+	set(sKey, sec);
+
+	bls::PublicKey pub;
+	sec.getPublicKey(pub);
+	std::cout << "pk: " << pub << std::endl;
+
+	return 0;	
+}
+
 int main(int argc, char *argv[])
 	try
 {
@@ -113,7 +125,7 @@ int main(int argc, char *argv[])
 	std::vector<std::string> sigs;
 
 	cybozu::Option opt;
-	opt.appendParam(&mode, "init|sign|verify|share|recover");
+	opt.appendParam(&mode, "init|sign|verify|share|recover|getpk");
 	opt.appendOpt(&k, 0, "k", ": k-out-of-n threshold");
 	opt.appendOpt(&sKey, "", "sk", ": secret key");
 	opt.appendOpt(&pKey, "", "pk", ": public key");
@@ -148,6 +160,9 @@ int main(int argc, char *argv[])
 		if (!sigs.size()) goto ERR_EXIT;
 		if (!ids.size()) goto ERR_EXIT;
 		return recover(ids, sigs);
+	} else if (mode == "getpk") {
+		if (sKey.empty()) goto ERR_EXIT;
+		return get_PubKey(sKey);
 	} else {
 		fprintf(stderr, "bad mode %s\n", mode.c_str());
 	}
