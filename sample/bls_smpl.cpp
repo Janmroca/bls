@@ -6,6 +6,20 @@
 
 #define log(x) std::cout << "Log: " << x << std::endl;
 
+int usage(const std::string& info)
+{
+	std::cout << "Input error: " << info << std::endl;
+	std::cout << "Correct options are:" << std::endl;
+	std::cout << "\tinit -id <id>" << std::endl;
+	std::cout << "\tsign -m <msg> -sk <sk>" << std::endl;
+	std::cout << "\tverify -m <msg> -sm <sigmsg> -pk <pk>" << std::endl;
+	std::cout << "\tshare -sk <sk> -k <k> -ids <id1> <id2>..." << std::endl;
+	std::cout << "\trecover -sigs <sig1> <sig2>... -ids <id1> <id2>..." << std::endl;
+	std::cout << "\tgetpk -sk <sk>" << std::endl;
+
+	return 1;
+}
+
 template<class T>
 void set(const std::string& in, T& t)
 {
@@ -136,39 +150,37 @@ int main(int argc, char *argv[])
 	opt.appendVec(&sigs, "sigs", ": signatures to recover from");
 	opt.appendHelp("h");
 	if (!opt.parse(argc, argv)) {
-		goto ERR_EXIT;
+		opt.usage();
+		return 1;
 	}
 
 	if (mode == "init") {
-		if (!id) goto ERR_EXIT;
+		if (!id) return usage("Id is not set");
 		return init(id);
 	} else if (mode == "sign") {
-		if (sKey.empty()) goto ERR_EXIT;
-		if (msg.empty()) goto ERR_EXIT;
+		if (sKey.empty()) return usage("Secret key is not set");
+		if (msg.empty()) return usage("Message is not set");
 		return sign(sKey, msg);
 	} else if (mode == "verify") {
-		if (pKey.empty()) goto ERR_EXIT;
-		if (msg.empty()) goto ERR_EXIT;
-		if (sMsg.empty()) goto ERR_EXIT;
+		if (pKey.empty()) return usage("Public key is not set");
+		if (msg.empty()) return usage("Message is not set");
+		if (sMsg.empty()) return usage("Signed message is not set");
 		return verify(pKey, msg, sMsg);
 	} else if (mode == "share") {
-		if (sKey.empty()) goto ERR_EXIT;
-		if (!k) goto ERR_EXIT;
-		if (ids.empty()) goto ERR_EXIT;
+		if (sKey.empty()) return usage("Secret key is not set");
+		if (!k) return usage("K is not set");
+		if (ids.empty()) return usage("Ids are not set");
 		return share(sKey, k, ids);
 	} else if (mode == "recover") {
-		if (!sigs.size()) goto ERR_EXIT;
-		if (!ids.size()) goto ERR_EXIT;
+		if (!sigs.size()) return usage("Sigs are not set");
+		if (!ids.size()) return usage("Ids are not set");
 		return recover(ids, sigs);
 	} else if (mode == "getpk") {
-		if (sKey.empty()) goto ERR_EXIT;
+		if (sKey.empty()) return usage("Secret key is not set");
 		return get_PubKey(sKey);
 	} else {
 		fprintf(stderr, "bad mode %s\n", mode.c_str());
 	}
-ERR_EXIT:
-	opt.usage();
-	return 1;
 } catch (std::exception& e) {
 	fprintf(stderr, "ERR %s\n", e.what());
 	return 1;
