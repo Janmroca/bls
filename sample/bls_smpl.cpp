@@ -10,6 +10,7 @@ int usage(const std::string& info)
 {
 	std::cout << "Input error: " << info << std::endl;
 	std::cout << "Correct options are:" << std::endl;
+	std::cout << "\tinit" << std::endl;
 	std::cout << "\tinit -id <id>" << std::endl;
 	std::cout << "\tsign -m <msg> -sk <sk>" << std::endl;
 	std::cout << "\tverify -m <msg> -sm <sigmsg> -pk <pk>" << std::endl;
@@ -27,9 +28,23 @@ void set(const std::string& in, T& t)
 	if (!(iss >> t)) throw cybozu::Exception("can't set") << in;
 }
 
-int init(const int id)
+int init()
 {
 	log("Initializing bls.");
+	bls::SecretKey sec;
+	sec.init();
+	std::cout << "secKey: " << sec << std::endl;
+
+	bls::PublicKey pub;
+	sec.getPublicKey(pub);
+	std::cout << "pubKey: " << pub << std::endl;
+
+	return 0;
+}
+
+int init(const int id)
+{
+	log("Initializing bls with id.");
 	bls::SecretKey sec;
 	sec.setHashOf(&id, sizeof(id));
 	std::cout << "secKey: " << sec << std::endl;
@@ -155,7 +170,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (mode == "init") {
-		if (!id) return usage("Id is not set");
+		if (!id) return init();
 		return init(id);
 	} else if (mode == "sign") {
 		if (sKey.empty()) return usage("Secret key is not set");
