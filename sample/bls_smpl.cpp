@@ -229,6 +229,18 @@ int exportPublicKey(const std::string& pKey)
 	return 0;
 }
 
+int exportSignature(const std::string& sig)
+{
+	bls::Signature signature;
+	set(sig, signature);
+	int buffSize = 64;
+	void* buff = malloc(buffSize);
+	if (!blsSignatureSerialize(buff, buffSize, &signature.self_)) return 1;
+
+	std::cout << "sig: " << buff << std::endl;
+	return 0;
+}
+
 int main(int argc, char *argv[])
 	try
 {
@@ -236,6 +248,7 @@ int main(int argc, char *argv[])
 
 	std::string mode;
 	std::string msg;
+	std::string sig;
 	std::string sMsg;
 	std::string sKey;
 	std::string sId;
@@ -247,7 +260,7 @@ int main(int argc, char *argv[])
 	std::vector<std::string> keys;
 
 	cybozu::Option opt;
-	opt.appendParam(&mode, "init|sign|verify|share|recover|getpk|secshare|pubshare|eqpks|addsks|addpks|exportpk");
+	opt.appendParam(&mode, "init|sign|verify|share|recover|getpk|secshare|pubshare|eqpks|addsks|addpks|exportpk|exportsig");
 	opt.appendOpt(&k, 0, "k", ": k-out-of-n threshold");
 	opt.appendOpt(&sKey, "", "sk", ": secret key");
 	opt.appendOpt(&pKey, "", "pk", ": public key");
@@ -255,6 +268,7 @@ int main(int argc, char *argv[])
 	opt.appendOpt(&sMsg, "", "sm", ": signed message");
 	opt.appendOpt(&id, 0, "id", ": id to initialize bls");
 	opt.appendOpt(&sId, "", "sid", ": secret id");
+	opt.appendOpt(&sig, "", "sig", ": sig to export");
 	opt.appendVec(&ids, "ids", ": ids of threshold participants");
 	opt.appendVec(&sigs, "sigs", ": signatures to recover from");
 	opt.appendVec(&keys, "keys", "keys to generate share");
@@ -308,6 +322,9 @@ int main(int argc, char *argv[])
 	} else if (mode == "exportpk") {
 		if (pKey.empty()) return usage("Public key is not set");
 		return exportPublicKey(pKey);
+	} else if (mode == "exportsig") {
+		if (sig.empty()) return usage("Sig is not set");
+		return exportSignature(sig);
 	} else {
 		fprintf(stderr, "bad mode %s\n", mode.c_str());
 	}

@@ -361,9 +361,9 @@ public:
 	s H(m) ; signature
 */
 class Signature {
-	blsSignature self_;
 	friend class SecretKey;
 public:
+	blsSignature self_;
 	bool operator==(const Signature& rhs) const
 	{
 		return blsSignatureIsEqual(&self_, &rhs.self_) == 1;
