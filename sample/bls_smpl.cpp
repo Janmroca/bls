@@ -20,7 +20,8 @@ int usage(const std::string& info)
 	std::cout << "\tsecshare -id <id> -keys <sk1> <sk2>..." << std::endl;
 	std::cout << "\tpubshare -id <id> -keys <pk1> <pk2>..." << std::endl;
 	std::cout << "\teqpks -keys <pk1> <pk2>" << std::endl;
-	std::cout << "\taddsks -keys <pk1> <pk2>" << std::endl;
+	std::cout << "\taddsks -keys <sk1> <sk2>" << std::endl;
+	std::cout << "\taddpks -keys <pk1> <pk2>" << std::endl;
 
 	return 1;
 }
@@ -202,7 +203,17 @@ int addSecretKeys(const std::string& sKey1, const std::string& sKey2)
 
 	std::cout << "sk: " << sk1 << std::endl;
 	return 0;
-	
+}
+
+int addPublicKeys(const std::string& pKey1, const std::string& pKey2)
+{
+	bls::PublicKey pk1, pk2;
+	set(pKey1, pk1);
+	set(pKey2, pk2);
+	blsPublicKeyAdd(&pk1.self_, &pk2.self_);
+
+	std::cout << "pk: " << pk1 << std::endl;
+	return 0;
 }
 
 int main(int argc, char *argv[])
@@ -223,7 +234,7 @@ int main(int argc, char *argv[])
 	std::vector<std::string> keys;
 
 	cybozu::Option opt;
-	opt.appendParam(&mode, "init|sign|verify|share|recover|getpk|secshare|pubshare|eqpks|addsks");
+	opt.appendParam(&mode, "init|sign|verify|share|recover|getpk|secshare|pubshare|eqpks|addsks|addpks");
 	opt.appendOpt(&k, 0, "k", ": k-out-of-n threshold");
 	opt.appendOpt(&sKey, "", "sk", ": secret key");
 	opt.appendOpt(&pKey, "", "pk", ": public key");
@@ -278,6 +289,9 @@ int main(int argc, char *argv[])
 	} else if (mode == "addsks") {
 		if (keys.size() != 2) return usage("You must set exactly two secret keys");
 		return addSecretKeys(keys[0], keys[1]);
+	} else if (mode == "addpks") {
+		if (keys.size() != 2) return usage("You must set exactly two public keys");
+		return addPublicKeys(keys[0], keys[1]);
 	} else {
 		fprintf(stderr, "bad mode %s\n", mode.c_str());
 	}
