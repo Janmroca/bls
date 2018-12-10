@@ -278,10 +278,10 @@ public:
 	sQ ; public key
 */
 class PublicKey {
-	blsPublicKey self_;
 	friend class SecretKey;
 	friend class Signature;
 public:
+	blsPublicKey self_;
 	bool operator==(const PublicKey& rhs) const
 	{
 		return blsPublicKeyIsEqual(&self_, &rhs.self_) == 1;

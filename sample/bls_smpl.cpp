@@ -17,7 +17,10 @@ int usage(const std::string& info)
 	std::cout << "\tshare -sk <sk> -k <k> -ids <id1> <id2>..." << std::endl;
 	std::cout << "\trecover -sigs <sig1> <sig2>... -ids <id1> <id2>..." << std::endl;
 	std::cout << "\tgetpk -sk <sk>" << std::endl;
-	std::cout << "\tsecshare -id <id> -sks <sk1> <sk2>..." << std::endl;
+	std::cout << "\tsecshare -id <id> -keys <sk1> <sk2>..." << std::endl;
+	std::cout << "\tpubshare -id <id> -keys <pk1> <pk2>..." << std::endl;
+	std::cout << "\teqpks -keys <pk1> <pk2>" << std::endl;
+	std::cout << "\taddsks -keys <pk1> <pk2>" << std::endl;
 
 	return 1;
 }
@@ -139,10 +142,11 @@ int get_PubKey(const std::string& sKey)
 	return 0;
 }
 
-int genSecretKeyShare(const int id, const std::vector<std::string>& sKeys)
+int genSecretKeyShare(const std::string& id, const std::vector<std::string>& keys)
 {
-	bls::Id bId(id);
-	int k = sKeys.size();
+	bls::Id bId;
+	set(id, bId);
+	int k = keys.size();
 	int dataSize = sizeof(blsSecretKey);
 	void* msk = malloc(dataSize * k);
 	bls::SecretKey sk;
@@ -150,13 +154,55 @@ int genSecretKeyShare(const int id, const std::vector<std::string>& sKeys)
 	for (int i = 0; i < k; ++i)
 	{
 		bls::SecretKey sKey;
-		set(sKeys[i], sKey);
+		set(keys[i], sKey);
 		memcpy(msk + dataSize * i, &sKey.self_, dataSize);
 	}
 
 	blsSecretKeyShare(&sk.self_, (blsSecretKey*)msk, k, &bId.self_);
 	std::cout << "sk: " << sk << std::endl;
 	return 0;
+}
+
+int genPublicKeyShare(const std::string& id, const std::vector<std::string>& keys)
+{
+	bls::Id bId;
+	set(id, bId);
+	int k = keys.size();
+	int dataSize = sizeof(blsPublicKey);
+	void* msk = malloc(dataSize * k);
+	bls::PublicKey pk;
+
+	for (int i = 0; i < k; ++i)
+	{
+		bls::PublicKey pKey;
+		set(keys[i], pKey);
+		memcpy(msk + dataSize * i, &pKey.self_, dataSize);
+	}
+
+	blsPublicKeyShare(&pk.self_, (blsPublicKey*)msk, k, &bId.self_);
+	std::cout << "pk: " << pk << std::endl;
+	return 0;
+}
+
+int publicKeyIsEqual(const std::string& pKey1, const std::string& pKey2)
+{
+	bls::PublicKey pk1, pk2;
+	set(pKey1, pk1);
+	set(pKey2, pk2);
+
+	return pk1 == pk2;
+}
+
+int addSecretKeys(const std::string& sKey1, const std::string& sKey2)
+{
+	bls::SecretKey sk1, sk2;
+	set(sKey1, sk1);
+	set(sKey2, sk2);
+	blsSecretKeyAdd(&sk1.self_, &sk2.self_);
+
+	std::cout << "sk: " << sk1 << std::endl;
+	return 0;
+	
 }
 
 int main(int argc, char *argv[])
@@ -168,24 +214,26 @@ int main(int argc, char *argv[])
 	std::string msg;
 	std::string sMsg;
 	std::string sKey;
+	std::string sId;
 	std::string pKey;
 	size_t k;
 	int id;
 	bls::IdVec ids;
 	std::vector<std::string> sigs;
-	std::vector<std::string> sKeys;
+	std::vector<std::string> keys;
 
 	cybozu::Option opt;
-	opt.appendParam(&mode, "init|sign|verify|share|recover|getpk|secshare");
+	opt.appendParam(&mode, "init|sign|verify|share|recover|getpk|secshare|pubshare|eqpks|addsks");
 	opt.appendOpt(&k, 0, "k", ": k-out-of-n threshold");
 	opt.appendOpt(&sKey, "", "sk", ": secret key");
 	opt.appendOpt(&pKey, "", "pk", ": public key");
 	opt.appendOpt(&msg, "", "m", ": message to be signed");
 	opt.appendOpt(&sMsg, "", "sm", ": signed message");
 	opt.appendOpt(&id, 0, "id", ": id to initialize bls");
+	opt.appendOpt(&sId, "", "sid", ": secret id");
 	opt.appendVec(&ids, "ids", ": ids of threshold participants");
 	opt.appendVec(&sigs, "sigs", ": signatures to recover from");
-	opt.appendVec(&sKeys, "sks", "secret keys");
+	opt.appendVec(&keys, "keys", "keys to generate share");
 	opt.appendHelp("h");
 	if (!opt.parse(argc, argv)) {
 		opt.usage();
@@ -217,9 +265,19 @@ int main(int argc, char *argv[])
 		if (sKey.empty()) return usage("Secret key is not set");
 		return get_PubKey(sKey);
 	} else if (mode == "secshare") {
-		if (!id) return usage("Id is not set");
-		if (!sKeys.size()) return usage("Secret keys are not set");
-		return genSecretKeyShare(id, sKeys);
+		if (sId.empty()) return usage("Id is not set");
+		if (!keys.size()) return usage("Secret keys are not set");
+		return genSecretKeyShare(sId, keys);
+	} else if (mode == "pubshare") {
+		if (sId.empty()) return usage("Id is not set");
+		if (!keys.size()) return usage("Public keys are not set");
+		return genPublicKeyShare(sId, keys);
+	} else if (mode == "eqpks") {
+		if (keys.size() != 2) return usage("You must set exactly two public keys");
+		return !publicKeyIsEqual(keys[0], keys[1]);
+	} else if (mode == "addsks") {
+		if (keys.size() != 2) return usage("You must set exactly two secret keys");
+		return addSecretKeys(keys[0], keys[1]);
 	} else {
 		fprintf(stderr, "bad mode %s\n", mode.c_str());
 	}
