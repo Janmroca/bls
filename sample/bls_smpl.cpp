@@ -145,7 +145,7 @@ int genSecretKeyShare(const int id, const std::vector<std::string>& sKeys)
 	int k = sKeys.size();
 	int dataSize = sizeof(blsSecretKey);
 	void* msk = malloc(dataSize * k);
-	blsSecretKey* sk;
+	bls::SecretKey sk;
 
 	for (int i = 0; i < k; ++i)
 	{
@@ -154,10 +154,8 @@ int genSecretKeyShare(const int id, const std::vector<std::string>& sKeys)
 		memcpy(msk + dataSize * i, &sKey.self_, dataSize);
 	}
 
-	printf("here\n");
-	blsSecretKeyShare(sk, (blsSecretKey*)msk, k, &bId.self_);
-	printf("there\n");
-
+	blsSecretKeyShare(&sk.self_, (blsSecretKey*)msk, k, &bId.self_);
+	std::cout << "sk: " << sk << std::endl;
 	return 0;
 }
 
