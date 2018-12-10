@@ -86,11 +86,11 @@ typedef std::vector<Signature> SignatureVec;
 typedef std::vector<Id> IdVec;
 
 class Id {
-	blsId self_;
 	friend class PublicKey;
 	friend class SecretKey;
 	friend class Signature;
 public:
+	blsId self_;
 	Id(unsigned int id = 0)
 	{
 		blsIdSetInt(&self_, id);
@@ -148,8 +148,8 @@ public:
 	s ; secret key
 */
 class SecretKey {
-	blsSecretKey self_;
 public:
+	blsSecretKey self_;
 	bool operator==(const SecretKey& rhs) const
 	{
 		return blsSecretKeyIsEqual(&self_, &rhs.self_) == 1;

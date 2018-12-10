@@ -17,6 +17,7 @@ int usage(const std::string& info)
 	std::cout << "\tshare -sk <sk> -k <k> -ids <id1> <id2>..." << std::endl;
 	std::cout << "\trecover -sigs <sig1> <sig2>... -ids <id1> <id2>..." << std::endl;
 	std::cout << "\tgetpk -sk <sk>" << std::endl;
+	std::cout << "\tsecshare -id <id> -sks <sk1> <sk2>..." << std::endl;
 
 	return 1;
 }
@@ -135,7 +136,29 @@ int get_PubKey(const std::string& sKey)
 	sec.getPublicKey(pub);
 	std::cout << "pk: " << pub << std::endl;
 
-	return 0;	
+	return 0;
+}
+
+int genSecretKeyShare(const int id, const std::vector<std::string>& sKeys)
+{
+	bls::Id bId(id);
+	int k = sKeys.size();
+	int dataSize = sizeof(blsSecretKey);
+	void* msk = malloc(dataSize * k);
+	blsSecretKey* sk;
+
+	for (int i = 0; i < k; ++i)
+	{
+		bls::SecretKey sKey;
+		set(sKeys[i], sKey);
+		memcpy(msk + dataSize * i, &sKey.self_, dataSize);
+	}
+
+	printf("here\n");
+	blsSecretKeyShare(sk, (blsSecretKey*)msk, k, &bId.self_);
+	printf("there\n");
+
+	return 0;
 }
 
 int main(int argc, char *argv[])
@@ -152,9 +175,10 @@ int main(int argc, char *argv[])
 	int id;
 	bls::IdVec ids;
 	std::vector<std::string> sigs;
+	std::vector<std::string> sKeys;
 
 	cybozu::Option opt;
-	opt.appendParam(&mode, "init|sign|verify|share|recover|getpk");
+	opt.appendParam(&mode, "init|sign|verify|share|recover|getpk|secshare");
 	opt.appendOpt(&k, 0, "k", ": k-out-of-n threshold");
 	opt.appendOpt(&sKey, "", "sk", ": secret key");
 	opt.appendOpt(&pKey, "", "pk", ": public key");
@@ -163,6 +187,7 @@ int main(int argc, char *argv[])
 	opt.appendOpt(&id, 0, "id", ": id to initialize bls");
 	opt.appendVec(&ids, "ids", ": ids of threshold participants");
 	opt.appendVec(&sigs, "sigs", ": signatures to recover from");
+	opt.appendVec(&sKeys, "sks", "secret keys");
 	opt.appendHelp("h");
 	if (!opt.parse(argc, argv)) {
 		opt.usage();
@@ -193,6 +218,10 @@ int main(int argc, char *argv[])
 	} else if (mode == "getpk") {
 		if (sKey.empty()) return usage("Secret key is not set");
 		return get_PubKey(sKey);
+	} else if (mode == "secshare") {
+		if (!id) return usage("Id is not set");
+		if (!sKeys.size()) return usage("Secret keys are not set");
+		return genSecretKeyShare(id, sKeys);
 	} else {
 		fprintf(stderr, "bad mode %s\n", mode.c_str());
 	}
