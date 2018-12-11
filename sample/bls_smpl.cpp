@@ -159,7 +159,7 @@ int genSecretKeyShare(const std::string& id, const std::vector<std::string>& key
 	{
 		bls::SecretKey sKey;
 		set(keys[i], sKey);
-		memcpy(msk + dataSize * i, &sKey.self_, dataSize);
+		memcpy((blsSecretKey*)msk + dataSize * i, &sKey.self_, dataSize);
 	}
 
 	blsSecretKeyShare(&sk.self_, (blsSecretKey*)msk, k, &bId.self_);
@@ -180,7 +180,7 @@ int genPublicKeyShare(const std::string& id, const std::vector<std::string>& key
 	{
 		bls::PublicKey pKey;
 		set(keys[i], pKey);
-		memcpy(msk + dataSize * i, &pKey.self_, dataSize);
+		memcpy((blsSecretKey*)msk + dataSize * i, &pKey.self_, dataSize);
 	}
 
 	blsPublicKeyShare(&pk.self_, (blsPublicKey*)msk, k, &bId.self_);
