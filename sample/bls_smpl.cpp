@@ -22,9 +22,6 @@ int usage(const std::string& info)
 	std::cout << "\teqpks -keys <pk1> <pk2>" << std::endl;
 	std::cout << "\taddsks -keys <sk1> <sk2>" << std::endl;
 	std::cout << "\taddpks -keys <pk1> <pk2>" << std::endl;
-	std::cout << "\texportpk -pk <pk>" << std::endl;
-	std::cout << "\texportsk -sk <sk>" << std::endl;
-	std::cout << "\texportsig -sig <sig>" << std::endl;
 
 	return 1;
 }
@@ -219,42 +216,6 @@ int addPublicKeys(const std::string& pKey1, const std::string& pKey2)
 	return 0;
 }
 
-int exportPublicKey(const std::string& pKey)
-{
-	bls::PublicKey pk;
-	set(pKey, pk);
-	int buffSize = 64;
-	void* buff = malloc(buffSize);
-	if (!blsPublicKeySerialize(buff, buffSize, &pk.self_)) return 1;
-
-	std::cout << "pk: " << buff << std::endl;
-	return 0;
-}
-
-int exportSecretKey(const std::string& sKey)
-{
-	bls::SecretKey sk;
-	set(sKey, sk);
-	int buffSize = 64;
-	void* buff = malloc(buffSize);
-	if (!blsSecretKeySerialize(buff, buffSize, &sk.self_)) return 1;
-
-	std::cout << "sk: " << buff << std::endl;
-	return 0;
-}
-
-int exportSignature(const std::string& sig)
-{
-	bls::Signature signature;
-	set(sig, signature);
-	int buffSize = 64;
-	void* buff = malloc(buffSize);
-	if (!blsSignatureSerialize(buff, buffSize, &signature.self_)) return 1;
-
-	std::cout << "sig: " << buff << std::endl;
-	return 0;
-}
-
 int main(int argc, char *argv[])
 	try
 {
@@ -262,7 +223,6 @@ int main(int argc, char *argv[])
 
 	std::string mode;
 	std::string msg;
-	std::string sig;
 	std::string sMsg;
 	std::string sKey;
 	std::string sId;
@@ -274,7 +234,7 @@ int main(int argc, char *argv[])
 	std::vector<std::string> keys;
 
 	cybozu::Option opt;
-	opt.appendParam(&mode, "init|sign|verify|share|recover|getpk|secshare|pubshare|eqpks|addsks|addpks|exportpk|exportsk|exportsig");
+	opt.appendParam(&mode, "init|sign|verify|share|recover|getpk|secshare|pubshare|eqpks|addsks|addpks");
 	opt.appendOpt(&k, 0, "k", ": k-out-of-n threshold");
 	opt.appendOpt(&sKey, "", "sk", ": secret key");
 	opt.appendOpt(&pKey, "", "pk", ": public key");
@@ -282,7 +242,6 @@ int main(int argc, char *argv[])
 	opt.appendOpt(&sMsg, "", "sm", ": signed message");
 	opt.appendOpt(&id, 0, "id", ": id to initialize bls");
 	opt.appendOpt(&sId, "", "sid", ": secret id");
-	opt.appendOpt(&sig, "", "sig", ": sig to export");
 	opt.appendVec(&ids, "ids", ": ids of threshold participants");
 	opt.appendVec(&sigs, "sigs", ": signatures to recover from");
 	opt.appendVec(&keys, "keys", "keys to generate share");
@@ -333,15 +292,6 @@ int main(int argc, char *argv[])
 	} else if (mode == "addpks") {
 		if (keys.size() != 2) return usage("You must set exactly two public keys");
 		return addPublicKeys(keys[0], keys[1]);
-	} else if (mode == "exportpk") {
-		if (pKey.empty()) return usage("Public key is not set");
-		return exportPublicKey(pKey);
-	} else if (mode == "exportsk") {
-		if (sKey.empty()) return usage("Secret key is not set");
-		return exportSecretKey(sKey);
-	} else if (mode == "exportsig") {
-		if (sig.empty()) return usage("Sig is not set");
-		return exportSignature(sig);
 	} else {
 		fprintf(stderr, "bad mode %s\n", mode.c_str());
 	}
