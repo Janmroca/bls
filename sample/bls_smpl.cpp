@@ -47,11 +47,11 @@ int init()
 	return 0;
 }
 
-int init(const std::string& id)
+int init(const int id)
 {
 	log("Initializing bls with id.");
 	bls::SecretKey sec;
-	sec.setHashOf(id.c_str(), id.size());
+	sec.setHashOf(&id, sizeof(id));
 	std::cout << "secKey: " << sec << std::endl;
 
 	bls::PublicKey pub;
@@ -228,7 +228,7 @@ int main(int argc, char *argv[])
 	std::string sId;
 	std::string pKey;
 	size_t k;
-    std::string id;
+	int id;
 	bls::IdVec ids;
 	std::vector<std::string> sigs;
 	std::vector<std::string> keys;
@@ -252,7 +252,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (mode == "init") {
-		if (id.empty()) return init();
+		if (!id) return init();
 		return init(id);
 	} else if (mode == "sign") {
 		if (sKey.empty()) return usage("Secret key is not set");
